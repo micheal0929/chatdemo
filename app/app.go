@@ -3,12 +3,15 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
+
+	"chatdemo/app/model"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 func SendMessageApi(ctx *gin.Context) {
@@ -47,7 +50,7 @@ func SendMessageApi(ctx *gin.Context) {
 	userHeadIndex := rand.Intn(9) + 1
 	userHead := strconv.Itoa(userHeadIndex) + ".jpg"
 
-	client := Client{
+	client := model.Client{
 		Conn:     conn,
 		UserName: userName,
 		Uid:      uid,
@@ -55,7 +58,7 @@ func SendMessageApi(ctx *gin.Context) {
 	}
 
 	//将用户加入用户组,使用时间戳当用户的键值
-	ClientMap[client.Uid] = client
+	model.ClientMap[client.Uid] = client
 
 	//新用户加入发送欢迎消息
 	//封装消息体
@@ -64,7 +67,7 @@ func SendMessageApi(ctx *gin.Context) {
 	dataMap["userName"] = "system"
 	dataMap["userList"] = getUserList()
 
-	messageData := MessageData{
+	messageData := model.MessageData{
 		Action: "systemMessage",
 		Data:   dataMap,
 	}
@@ -79,7 +82,7 @@ func SendMessageApi(ctx *gin.Context) {
 		if err != nil {
 			//删除离开的用户
 			fmt.Println(err)
-			delete(ClientMap, client.Uid)
+			delete(model.ClientMap, client.Uid)
 
 			//封装消息体
 			dataMap := make(map[string]interface{})
@@ -87,7 +90,7 @@ func SendMessageApi(ctx *gin.Context) {
 			dataMap["userName"] = "system"
 			dataMap["userList"] = getUserList()
 
-			messageData := MessageData{
+			messageData := model.MessageData{
 				Action: "systemMessage",
 				Data:   dataMap,
 			}
@@ -97,13 +100,13 @@ func SendMessageApi(ctx *gin.Context) {
 		}
 
 		//封装消息体
-		message := Message{
+		message := model.Message{
 			Content:  string(recvMessage),
 			UserName: client.UserName,
 			UserHead: client.UserHead,
 		}
 
-		messageData := MessageData{
+		messageData := model.MessageData{
 			Action: "userMessage",
 			Data:   message,
 		}
@@ -114,9 +117,9 @@ func SendMessageApi(ctx *gin.Context) {
 }
 
 //广播
-func broadcast(messageData MessageData) {
+func broadcast(messageData model.MessageData) {
 	jsonMessage, _ := json.Marshal(messageData)
-	for _, c := range ClientMap {
+	for _, c := range model.ClientMap {
 		c.Conn.WriteMessage(websocket.TextMessage, jsonMessage)
 	}
 }
@@ -142,11 +145,11 @@ func getRandUserName() string {
 	return userName
 }
 
-func getUserList() []User {
-	var userList []User
+func getUserList() []model.User {
+	var userList []model.User
 
-	for _, c := range ClientMap {
-		user := User{
+	for _, c := range model.ClientMap {
+		user := model.User{
 			UserName: c.UserName,
 			UserHead: c.UserHead,
 		}
